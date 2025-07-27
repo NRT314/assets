@@ -1,22 +1,22 @@
 {
   "name": "NewRussiaToken List",
-  "timestamp": "2025-07-26T00:00:00Z",
+  "timestamp": "2025-07-27T00:00:00Z",
   "version": {
     "major": 1,
-    "minor": 0,
+    "minor": 1,
     "patch": 0
   },
   "tokens": [
     {
       "chainId": 137,
-      "address": "0x875eB740603Cd0eAE03caa99Dd2d0f23BE9B6BF5",
+      "address": "0x59b460bd54E869E0ade60dB62d445F6522099135",
       "name": "NewRussiaToken",
       "symbol": "NRT",
       "decimals": 18,
-      "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/blockchains/polygon/assets/0x875eB740603Cd0eAE03caa99Dd2d0f23BE9B6BF5/logo.png",
+      "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/blockchains/polygon/assets/0x59b460bd54E869E0ade60dB62d445F6522099135/logo.png",
       "tags": ["charity", "donation"]
     }
   ],
   "keywords": ["NRT", "NewRussiaToken", "charity", "donation"],
-  "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/blockchains/polygon/assets/0x875eB740603Cd0eAE03caa99Dd2d0f23BE9B6BF5/logo.png"
+  "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/blockchains/polygon/assets/0x59b460bd54E869E0ade60dB62d445F6522099135/logo.png"
 }
