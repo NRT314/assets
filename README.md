@@ -2,7 +2,7 @@
 
 **Symbol:** NRT  
 **Chain:** Polygon (chainId: 137)  
-**Token Address:** `0x875eB740603Cd0eAE03caa99Dd2d0f23BE9B6BF5`  
+**Token Address:** `0x59b460bd54E869E0ade60dB62d445F6522099135`  
 **Decimals:** 18
 
 ## About
