@@ -36,8 +36,8 @@ interface IERC20Errors {
 }
 
 contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
-    mapping(address account => uint256) private _balances;
-    mapping(address account => mapping(address spender => uint256)) private _allowances;
+    mapping(address => uint256) private _balances;
+    mapping(address => mapping(address spender => uint256)) private _allowances;
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
@@ -157,7 +157,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
 
     function _spendAllowance(address owner, address spender, uint256 value) internal virtual {
         uint256 currentAllowance = allowance(owner, spender);
-        if (currentAllowance < type(uint256).max) {
+        if (currentAllowance != type(uint256).max) {
             if (currentAllowance < value) {
                 revert ERC20InsufficientAllowance(spender, currentAllowance, value);
             }
@@ -295,10 +295,6 @@ contract Pausable is Context {
         emit Paused(_msgSender());
     }
 
-    function _pausedAt() internal view virtual returns (uint256) {
-        return _paused;
-    }
-
     function _unpause() internal virtual whenPaused {
         _paused = 0;
         emit Unpaused(_msgSender());
@@ -329,6 +325,8 @@ error TokenNotInWhitelist();
 error CannotRecoverWhitelistedToken();
 error MaxCommissionRateExceeded();
 error NrtIsNonTransferable();
+error DuplicateRecipientInList(address recipient);
+error RecipientAlreadyInWhitelist();
 
 contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
     IERC20 public usdt;
@@ -374,7 +372,6 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
     bool public commissionEnabled = false;
 
     constructor() ERC20Burnable("NewRussiaToken", "NRT") Ownable(msg.sender) {
-        // Initialize USDT
         usdt = IERC20(0xc2132D05D31c914a87C6611C10748AEb04B58e8F);
         whitelistToken[address(usdt)] = true;
         whitelistedTokens.push(address(usdt));
@@ -382,7 +379,6 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         tokenDecimals[address(usdt)] = USDT_DECIMALS;
         emit TokenInfoUpdated(address(usdt), tokenUsdtRatesIn1e18[address(usdt)], tokenDecimals[address(usdt)]);
 
-        // Initialize USDC (official PoS)
         address usdcAddress = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
         whitelistToken[usdcAddress] = true;
         whitelistedTokens.push(usdcAddress);
@@ -390,7 +386,6 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         tokenDecimals[usdcAddress] = 6;
         emit TokenInfoUpdated(usdcAddress, tokenUsdtRatesIn1e18[usdcAddress], tokenDecimals[usdcAddress]);
 
-        // Initialize DAI
         address daiAddress = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
         whitelistToken[daiAddress] = true;
         whitelistedTokens.push(daiAddress);
@@ -398,7 +393,6 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         tokenDecimals[daiAddress] = 18;
         emit TokenInfoUpdated(daiAddress, tokenUsdtRatesIn1e18[daiAddress], tokenDecimals[daiAddress]);
 
-        // Other constructor logic...
         whitelistRecipient[0xc0F467567570AADa929fFA115E65bB39066e3E42] = true;
         whitelistedRecipients.push(0xc0F467567570AADa929fFA115E65bB39066e3E42);
         admins[msg.sender] = true;
@@ -437,11 +431,10 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @dev Calculates the USDT equivalent of a token amount with 6 decimal places.
-     * This function now correctly handles decimal scaling to prevent overflow errors.
-     * @param token The address of the token being donated.
-     * @param amount The amount of the donation in the token's base units.
-     * @return usdtAmountIn6Decimals The equivalent amount in USDT with 6 decimals (USDT * 10^6).
+     * @notice Calculates the USDT equivalent of a token amount, targeting 6 decimals for USDT.
+     * @dev This version is mathematically simplified to perform all multiplications before division,
+     * preventing precision loss with integer arithmetic. The formula is an optimized
+     * version of: (amount * 10**(18-decs) * rate / 1e18) / 10**(18-6).
      */
     function _calculateUsdtEquivalent(address token, uint256 amount) internal view returns (uint256 usdtAmountIn6Decimals) {
         uint256 rate = tokenUsdtRatesIn1e18[token];
@@ -450,24 +443,11 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         if (rate == 0) revert ZeroRate();
         if (decs > 77) revert DecimalsTooHigh();
 
-        uint256 scaledAmount;
-        if (decs < 18) {
-            scaledAmount = amount * (10**(18 - decs));
-        } else {
-            scaledAmount = amount / (10**(decs - 18));
-        }
-
-        uint256 usdtEquivalentIn18Decimals = (scaledAmount * rate) / (10**18);
-
-        return usdtEquivalentIn18Decimals / (10**(18 - USDT_DECIMALS));
+        // The formula simplifies to (amount * rate) / 10^(decs + 12), which correctly
+        // normalizes any token amount to a 6-decimal USDT value.
+        return (amount * rate) / (10 ** (decs + 12));
     }
 
-
-    /**
-     * @dev Centralized function to scale a USDT amount (6 decimals) to NRT (18 decimals).
-     * @param usdtAmountIn6Decimals The amount in USDT with 6 decimals.
-     * @return nrtAmountIn18Decimals The equivalent amount in NRT with 18 decimals.
-     */
     function toNrt(uint256 usdtAmountIn6Decimals) internal pure returns (uint256 nrtAmountIn18Decimals) {
         return usdtAmountIn6Decimals * (10**(NRT_DECIMALS - USDT_DECIMALS));
     }
@@ -480,9 +460,17 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         return whitelistedRecipients;
     }
 
-    // ---
-    // Обновлённая функция donate для корректной обработки комиссии.
-    // ---
+    function _checkUnique(address[] calldata addresses) private pure {
+        uint256 len = addresses.length;
+        for (uint256 i = 0; i < len; i++) {
+            for (uint256 j = i + 1; j < len; j++) {
+                if (addresses[i] == addresses[j]) {
+                    revert DuplicateRecipientInList(addresses[i]);
+                }
+            }
+        }
+    }
+
     function donate(address token, address[] calldata recipients, uint256[] calldata amounts) external nonReentrant whenNotPaused {
         if (!whitelistToken[token]) {
             revert TokenNotAllowed();
@@ -490,6 +478,7 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         if (recipients.length != amounts.length) {
             revert LengthMismatch();
         }
+        _checkUnique(recipients);
 
         uint256 totalDonationAmount = 0;
         for (uint256 i = 0; i < amounts.length; i++) {
@@ -512,7 +501,7 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
             if (recipients.length < 2) {
                 revert AtLeastTwoRecipientsRequired();
             }
-            if ((maxShare * 10000) / totalDonationAmount > 9500) {
+            if (totalDonationAmount > 0 && (maxShare * 10000) / totalDonationAmount > 9500) {
                 revert MaxShareExceeded();
             }
         }
@@ -522,22 +511,29 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         uint256 commission = 0;
         if (commissionEnabled && commissionRate > 0) {
             commission = (totalDonationAmount * commissionRate) / 10000;
-            safeTransferCompatible(IERC20(token), commissionWallet, commission);
+            if (commission > 0) {
+                safeTransferCompatible(IERC20(token), commissionWallet, commission);
+            }
         }
         
         uint256 netDonationAmount = totalDonationAmount - commission;
         uint256 totalSentToRecipients = 0;
 
         for (uint256 i = 0; i < recipients.length; i++) {
-            uint256 recipientShare = (netDonationAmount * amounts[i]) / totalDonationAmount;
+            uint256 recipientShare = 0;
+            if (totalDonationAmount > 0) {
+                recipientShare = (netDonationAmount * amounts[i]) / totalDonationAmount;
+            }
             
-            safeTransferCompatible(IERC20(token), recipients[i], recipientShare);
+            if (recipientShare > 0) {
+                safeTransferCompatible(IERC20(token), recipients[i], recipientShare);
             
-            uint256 recipientUsdtEquivalent = _calculateUsdtEquivalent(token, recipientShare);
-            totalReceivedInUsdt[recipients[i]] += recipientUsdtEquivalent;
-            emit Donation(msg.sender, token, recipients[i], recipientShare);
-            
-            totalSentToRecipients += recipientShare;
+                uint256 recipientUsdtEquivalent = _calculateUsdtEquivalent(token, recipientShare);
+                totalReceivedInUsdt[recipients[i]] += recipientUsdtEquivalent;
+                emit Donation(msg.sender, token, recipients[i], recipientShare);
+                
+                totalSentToRecipients += recipientShare;
+            }
         }
 
         uint256 remainder = netDonationAmount - totalSentToRecipients;
@@ -550,9 +546,6 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         _mint(msg.sender, toNrt(totalDonatedInUsdt));
     }
 
-    // ---
-    // Обновлённая функция donatePreset для корректной обработки комиссии.
-    // ---
     function donatePreset(string calldata name, address token, uint256 amount) external nonReentrant whenNotPaused {
         if (!whitelistToken[token]) {
             revert TokenNotAllowed();
@@ -563,8 +556,6 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
             revert PresetNotFound();
         }
         
-        // Проверка на strictDonationMode теперь происходит до перевода токенов.
-        // Это более безопасно и эффективно.
         if (strictDonationMode) {
             if (preset.recipients.length < 2) {
                 revert AtLeastTwoRecipientsRequired();
@@ -581,13 +572,14 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         uint256 commission = 0;
         if (commissionEnabled && commissionRate > 0) {
             commission = (amount * commissionRate) / 10000;
-            safeTransferCompatible(IERC20(token), commissionWallet, commission);
+            if (commission > 0) {
+                safeTransferCompatible(IERC20(token), commissionWallet, commission);
+            }
         }
 
         uint256 netAmount = amount - commission;
         uint256 totalSent = 0;
         
-        // Проверка MaxShareExceeded теперь использует netAmount для более точных расчетов
         if (strictDonationMode) {
             uint256 maxPart = 0;
             for (uint256 i = 0; i < preset.recipients.length; i++) {
@@ -606,12 +598,15 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
             }
 
             uint256 part = (netAmount * preset.percentages[i]) / 10000;
-            safeTransferCompatible(IERC20(token), recipient, part);
+
+            if (part > 0) {
+                safeTransferCompatible(IERC20(token), recipient, part);
             
-            uint256 recipientUsdtEquivalent = _calculateUsdtEquivalent(token, part);
-            totalReceivedInUsdt[recipient] += recipientUsdtEquivalent;
-            emit Donation(msg.sender, token, recipient, part);
-            totalSent += part;
+                uint256 recipientUsdtEquivalent = _calculateUsdtEquivalent(token, part);
+                totalReceivedInUsdt[recipient] += recipientUsdtEquivalent;
+                emit Donation(msg.sender, token, recipient, part);
+                totalSent += part;
+            }
         }
 
         uint256 remainder = netAmount - totalSent;
@@ -635,6 +630,8 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         if (recipients.length != percentages.length) {
             revert LengthMismatch();
         }
+        _checkUnique(recipients);
+
         uint256 total;
         for (uint256 i = 0; i < percentages.length; i++) total += percentages[i];
         if (total != 10000) {
@@ -654,6 +651,8 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         if (newRecipients.length != newPercentages.length) {
             revert LengthMismatch();
         }
+        _checkUnique(newRecipients);
+
         uint256 total;
         for (uint256 i = 0; i < newPercentages.length; i++) total += newPercentages[i];
         if (total != 10000) {
@@ -680,19 +679,27 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
         if (recipient == address(0)) {
             revert ZeroAddress();
         }
+        if (whitelistRecipient[recipient]) {
+            revert RecipientAlreadyInWhitelist();
+        }
         whitelistRecipient[recipient] = true;
         whitelistedRecipients.push(recipient);
         emit RecipientAdded(recipient);
     }
 
     function addRecipients(address[] calldata recipients) external onlyAdmin {
+        _checkUnique(recipients);
+
         for (uint256 i = 0; i < recipients.length; i++) {
-            if (recipients[i] == address(0)) {
+            address recipient = recipients[i];
+            if (recipient == address(0)) {
                 revert ZeroAddress();
             }
-            whitelistRecipient[recipients[i]] = true;
-            whitelistedRecipients.push(recipients[i]);
-            emit RecipientAdded(recipients[i]);
+            if (!whitelistRecipient[recipient]) {
+                whitelistRecipient[recipient] = true;
+                whitelistedRecipients.push(recipient);
+                emit RecipientAdded(recipient);
+            }
         }
     }
 
@@ -704,6 +711,7 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
             revert RecipientNotInWhitelist();
         }
         whitelistRecipient[recipient] = false;
+        
         for (uint256 i = 0; i < whitelistedRecipients.length; i++) {
             if (whitelistedRecipients[i] == recipient) {
                 whitelistedRecipients[i] = whitelistedRecipients[whitelistedRecipients.length - 1];
@@ -742,6 +750,7 @@ contract NewRussiaToken is ERC20Burnable, Ownable, ReentrancyGuard, Pausable {
             revert TokenNotInWhitelist();
         }
         whitelistToken[token] = false;
+        
         for (uint256 i = 0; i < whitelistedTokens.length; i++) {
             if (whitelistedTokens[i] == token) {
                 whitelistedTokens[i] = whitelistedTokens[whitelistedTokens.length - 1];
