@@ -1,22 +1,42 @@
 {
   "name": "NewRussiaToken List",
-  "timestamp": "2025-07-27T00:00:00Z",
-  "version": {
-    "major": 1,
-    "minor": 1,
-    "patch": 0
+  "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/logo.png",
+  "keywords": ["donation", "soulbound", "commemorative"],
+  "tags": {
+    "soulbound": {
+      "name": "Soulbound",
+      "description": "Non-transferable tokens bound to a wallet"
+    },
+    "donation": {
+      "name": "Donation",
+      "description": "Tokens issued as proof of charitable donations"
+    },
+    "commemorative": {
+      "name": "Commemorative",
+      "description": "Issued to commemorate an event or cause"
+    }
   },
+  "timestamp": "2025-08-13T00:00:00.000Z",
   "tokens": [
     {
       "chainId": 137,
-      "address": "0x59b460bd54E869E0ade60dB62d445F6522099135",
+      "address": "0xE61FEb2c3278A6094571ce12177767221cA4b661",
       "name": "NewRussiaToken",
       "symbol": "NRT",
       "decimals": 18,
-      "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/blockchains/polygon/assets/0x59b460bd54E869E0ade60dB62d445F6522099135/logo.png",
-      "tags": ["charity", "donation"]
+      "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/logo.png",
+      "tags": ["soulbound", "donation", "commemorative"],
+      "extensions": {
+        "description": "Non-transferable token as proof of donation to independent Russian organizations via the NRT platform.",
+        "website": "https://newrussiatoken.netlify.app/",
+        "documentation": "https://raw.githubusercontent.com/NRT314/assets/main/README.md",
+        "github": "https://github.com/NRT314/donate"
+      }
     }
   ],
-  "keywords": ["NRT", "NewRussiaToken", "charity", "donation"],
-  "logoURI": "https://raw.githubusercontent.com/NRT314/assets/main/blockchains/polygon/assets/0x59b460bd54E869E0ade60dB62d445F6522099135/logo.png"
+  "version": {
+    "major": 1,
+    "minor": 0,
+    "patch": 0
+  }
 }
