@@ -1,27 +1,56 @@
-# New Russia Token (NRT)
+# NewRussiaToken (NRT)
 
+**Chain:** Polygon (Chain ID: 137)  
+**Contract:** [0xE61FEb2c3278A6094571ce12177767221cA4b661](https://polygonscan.com/address/0xE61FEb2c3278A6094571ce12177767221cA4b661)  
+**Decimals:** 18  
 **Symbol:** NRT  
-**Chain:** Polygon (chainId: 137)  
-**Token Address:** `0x59b460bd54E869E0ade60dB62d445F6522099135`  
-**Decimals:** 18
+**Website:** [newrussiatoken.netlify.app](https://newrussiatoken.netlify.app/)  
 
-## About
+---
 
-New Russia Token (NRT) is a donation-linked token created to support civil society initiatives, media, and human rights organizations—especially those blocked or persecuted by Russian authorities.
+## 🎯 Project Mission
+NewRussiaToken (NRT) is a blockchain-based platform designed to support independent Russian organizations through cryptocurrency donations.
 
-Holders receive NRT in exchange for on-chain donations in USDT or other whitelisted tokens. The token is **non-transferable** and may serve future purposes such as governance (DAO), recognition, or rewards.
+Donors receive a **non-transferable commemorative token (NRT)** as proof of their support.  
+This asset is **not tradable** and serves purely as a reputational badge.
 
-## Purpose
+---
 
-- Encourage donations to independent organizations
-- Provide symbolic recognition via token issuance
-- Lay the foundation for future DAO governance
+## ⚙️ How the Smart Contract Works
 
-## Links
+### NRT Token
+- **Non-Transferable:** `transfer` and `transferFrom` are disabled — NRT cannot be sold or sent to others.
+- **Burnable:** Holders can destroy (burn) their tokens voluntarily.
+- **Minting on Donation:** Donors receive NRT equivalent to the donation amount in USD (USDT value).
 
-- [Token JSON](https://github.com/NRT314/assets/blob/main/blockchains/polygon/assets/0x875eB740603Cd0eAE03caa99Dd2d0f23BE9B6BF5/info.json)
-- [Token Logo](https://github.com/NRT314/assets/blob/main/blockchains/polygon/assets/0x875eB740603Cd0eAE03caa99Dd2d0f23BE9B6BF5/logo.png)
+### Donation Process
+1. User calls `donate` or `donatePreset`, specifying token and amount.
+2. Funds are sent only to **whitelisted recipients**.
+3. Donation amount is converted to a USDT equivalent (based on admin-set rates).
+4. NRT is minted to the donor’s address.
 
-## License
+---
 
-MIT
+## 📋 Whitelists
+- **Token Whitelist:** USDT, USDC, DAI (ERC20 on Polygon).
+- **Recipient Whitelist:** Only verified beneficiary addresses can receive donations.
+
+---
+
+## 🔐 Security
+- **Re-entrancy protection** with `nonReentrant` modifier.
+- **Overflow protection** via Solidity 0.8.x built-in checks.
+- **Safe ERC20 handling** compatible with tokens like USDT.
+
+---
+
+## 📎 Resources
+- **Smart Contract:** [Polygonscan Verified Code](https://polygonscan.com/address/0xE61FEb2c3278A6094571ce12177767221cA4b661#code)
+- **Website:** [newrussiatoken.netlify.app](https://newrussiatoken.netlify.app/)
+- **Snapshot Voting:** [snapshot.box/#/s:newrussia.eth](https://snapshot.box/#/s:newrussia.eth)
+- **GitHub Discussions:** [github.com/NRT314/donate-site/discussions](https://github.com/NRT314/donate-site/discussions)
+
+---
+
+## 📜 License
+MIT License
